@@ -1,0 +1,123 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Devops Training Chapter 8 : Automation CloudFormation Template",
+
+  "Parameters": {
+    "AMIID": {
+      "Description": "foundation-amazon_x86_64_hvm-20151231-01",
+      "Type": "String",
+      "Default": "ami-a0376aca"
+    },
+    "IamRole": {
+      "Description": "IAMRoleName",
+      "Type": "String",
+      "Default": "cpq-iam-rolecpq-iam-infrastructure-cpqinstanceprofile-1N6HTLJ87CQD"
+    },
+    "InstanceType": {
+      "Description": "Instance Size",
+      "Type": "String",
+      "Default": "t2.micro"
+    },
+    "Keyname": {
+      "Description": "Enter AWS Access Key ID for Secure Signon",
+      "Type": "String",
+      "Default": "DEV-ACT"
+    },
+    "Owner": {
+      "Description": "Email Address of Responsible Party",
+      "Type": "String",
+      "Default": "Chamren.Beavers@infor.com"
+    },
+    "Team": {
+      "Description": "Relative service group",
+      "Type": "String",
+      "Default": "Cloudops"
+    },
+    "ProductSubnetIDs": {
+      "Description": "Comma Delimited Subnet ID Zones in the form of subnet-xxxxxxxx",
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Default": "subnet-acfc96f4,subnet-020c5274,subnet-4128707c"
+    },
+    "SecurityGroupIds": {
+      "Description": "Comma Delimited list of Security Group Ids in the form of sg-xxxxxxxx",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>",
+      "Default": "sg-4526013f,sg-465cca3e,sg-758d1e0d,sg-748d1e0c"
+    },
+    "Product": {
+      "Description": "Product Descriptor.",
+      "Type": "String",
+      "Default": "Cloudops"
+    },
+    "Schedule": {
+      "Description": "Product Descriptor.",
+      "Type": "String",
+      "Default": "Hanover:Exception"
+    },
+    "Ec2TagNameValue": {
+      "Description": "Product Descriptor.",
+      "Type": "String"
+    }
+
+  },
+
+
+  "Resources" : {
+         "DEVOPSCBC8ASG" : {
+		 	"UpdatePolicy" : {
+				"AutoScalingRollingUpdate" :	{
+				"MinInstancesInService" : "0",
+				"MaxBatchSize" : "1",
+				"PauseTime" : "PT10M",
+				"WaitOnResourceSignals" : "true"
+												}
+							 },
+         "Type" : "AWS::AutoScaling::AutoScalingGroup",
+         "Properties" : {
+           "VPCZoneIdentifier" : { "Ref" : "ProductSubnetIDs"}, 
+           "MinSize" : "1",
+           "MaxSize" : "1",
+           "DesiredCapacity" : "1", 
+           "LaunchConfigurationName" : { "Ref" : "DEVOPSCBC8LC" },
+           "Tags" : [
+              { "Key" : "Name", "Value" : { "Ref" : "Ec2TagNameValue" }, "PropagateAtLaunch" : "True" },
+              { "Key" : "Schedule", "Value" : { "Ref" : "Schedule"},  "PropagateAtLaunch" : "True" },
+              { "Key" : "Product", "Value" : { "Ref" : "Product"}, "PropagateAtLaunch" : "True" },
+              { "Key" : "Owner", "Value" : { "Ref" : "Owner"}, "PropagateAtLaunch" : "True" },
+              { "Key" : "Team", "Value" : { "Ref" : "Team"}, "PropagateAtLaunch" : "True" }
+           ]
+         }
+       },
+         "DEVOPSCBC8LC": {
+         "Type" : "AWS::AutoScaling::LaunchConfiguration",
+         "Properties" : {
+		 "SecurityGroups" : { "Ref" : "SecurityGroupIds"},
+           "IamInstanceProfile" : { "Ref" : "IamRole" },
+           "ImageId" : { "Ref" : "AMIID" },
+           "InstanceType" :{ "Ref" :"InstanceType"},
+           "KeyName" : { "Ref" : "Keyname" },
+           "UserData" : { 
+             "Fn::Base64" : {
+               "Fn::Join" : [ "", [
+                   "#!/bin/bash\n\n",
+                   "yum install ruby\n",
+                   "yum install wget\n",
+                   "cd /home/ec2-user\n",
+                   "wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install \n",
+                   "chmod +x ./install \n",
+                   "./install auto \n"
+                 ]
+               ]
+			  }
+			}
+		  }
+		 }
+	
+	},
+	"Outputs" : {
+		"DEVOPSCBC8ASGId": {
+			"Description": "AutoScaling Group",
+			"Value": {"Ref": "DEVOPSCBC8ASG"}
+		}
+	}
+}

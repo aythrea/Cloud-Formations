@@ -1,0 +1,66 @@
+# Devops Chapter8 Deckspec
+format_version: 2016-08-01
+name: cpq-devops-c8-install
+
+
+parameters:
+  InfrastructureDeployment:
+    default: "cpq-devopsc8-infra"
+  CodeDeployIamDeployment:
+
+build:
+
+  includes:
+    - name: "cpq-devop-c8-infra"
+    - name: "snmp-linux-agent-install"
+    - name: "salt-masterless-linux"
+    - name: "salt-masterless-linux-install"
+  links:
+    - source: s3://infor-devops-dev-cpq/cbeavers/chapter8/Salt/top.sls
+      name: salt-top
+    - source: s3://infor-devops-dev-cpq/cbeavers/chapter8/Salt/users.sls
+      name: salt-users
+    - source: s3://infor-devops-dev-cpq/cbeavers/chapter8/Salt/sshkeys.sls
+      name: salt-sshkeys
+    - source: s3://infor-devops-dev-cpq/cbeavers/chapter8/SSH/brubble.pub
+      name: ssh-keys
+  files:
+    - source: "link:salt-top"
+      destination: "/etc/salt/states/top.sls"
+    - source: "link:salt-users"
+      destination: "/etc/salt/states/users.sls"
+    - source: "link:salt-sshkeys"
+      destination: "/etc/salt/states/sshkeys.sls"
+    - source: "link:ssh-keys"
+      destination: "/etc/salt/states/sshkeys/brubble.pub"
+
+  scripts:
+    - name: yum_update
+      timeout: 600
+      hook: AfterInstall
+      runas: root
+      contents: |
+        yum update -y
+        salt-call --local state.highstate
+deploy:
+
+  dependencies:
+    - name: cpq-devops-c8-infra
+      import_namespace: infra
+      deployment: ((InfrastructureDeployment))
+    - name: codedeploy-iam-infrastructure
+      import_namespace: codedeploy
+      deployment: ((CodeDeployIamDeployment))
+
+  codedeploy_config:
+    name: CodeDeployDefault.AllAtOnce
+    platform: linux
+    minimum_healthy_hosts:
+      type: FLEET_PERCENT
+      value: 0
+    servicerole: ((codedeploy.CodeDeployServiceRoleArn))
+    ec2tags:
+      - key: Name
+        value: ((infra.Ec2TagNameValue))
+        type: KEY_AND_VALUE
+    timeout: 1800

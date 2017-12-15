@@ -1,0 +1,50 @@
+# Devops Chapter8 Deckspec
+format_version: 2016-08-01
+name: cpq-devops-c8-infra
+
+parameters:
+  AMIID:
+  IamRole:
+  InstanceType:
+  Keyname:
+  Owner:
+  Team:
+  ProductSubnetIDs:
+  SecurityGroupIds:
+  Product:
+  Schedule:
+  Ec2TagNameValue:
+    default: "cpq-devopsc8-cb"
+  IamDeployment:
+  ProductStackDeployment:
+
+
+deploy:
+  dependencies:
+    - name: cpq-iam-infrastructure
+      import_namespace: iam
+      deployment: ((IamDeployment))
+    - name: productstack-infrastructure
+      import_namespace: productstack
+      deployment: ((ProductStackDeployment))	  
+
+  cloudformation:
+    cpq-devopsc8-infrastructure-stack:
+      file: cpq-devops-c8.template
+      parameters:
+        AMIID: ((AMIID))
+        IamRole: ((iam.cpqInstanceProfile))
+        InstanceType: ((InstanceType))
+        Keyname: ((Keyname))
+        Owner: ((Owner))
+        Team: ((Team))
+        ProductSubnetIDs: ((productstack.ProductSubnetIds))
+        SecurityGroupIds: ((SecurityGroupIds))
+        Product: ((Product))
+        Schedule: ((Schedule))
+        Ec2TagNameValue: ((Ec2TagNameValue))
+
+output:
+  Ec2TagNameValue:
+    description: "EC2 tag name and value to identify instances" 
+    contents: ((Ec2TagNameValue))

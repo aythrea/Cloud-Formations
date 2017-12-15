@@ -1,0 +1,13 @@
+AMIID: ami-a0376aca
+InstanceType: t2.micro
+Keyname: DEV-ACT
+Owner: Chamren.Beavers@infor.com
+Team: Cloudops
+Ec2TagNameValue: cpq-devops-c8
+SecurityGroupIds: sg-4526013f,sg-465cca3e,sg-758d1e0d,sg-748d1e0c
+Product: Cloudops
+Schedule: CPQ-AlwaysOn
+ProductStackDeployment: cpq-productstack
+IamDeployment: cpq-iam-infrastructure
+ProductSubnetIDs: subnet-acfc96f4,subnet-020c5274,subnet-4128707c
+IamRole: cpq-iam-rolecpq-iam-infrastructure-cpqinstanceprofile-1N6HTLJ87CQD
