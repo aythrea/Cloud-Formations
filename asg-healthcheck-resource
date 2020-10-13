@@ -1,0 +1,65 @@
+  # Custom Resources here #
+  # Custom resource that suspends the ASG healthcheck process with a lambda function
+  # Includes ARN perms built in. 
+
+  AsgProcessModificationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+            Service: [lambda.amazonaws.com]
+      Policies:
+      - PolicyName: AsgProcessModification
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'autoscaling:ResumeProcesses'
+            - 'autoscaling:SuspendProcesses'
+            # http://docs.aws.amazon.com/autoscaling/latest/userguide/IAM.html#AutoScaling_ARN_Format
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup,
+            - logs:CreateLogStream,
+            - logs:PutLogEvents
+            Resource: 'arn:aws:logs:*:*:*'
+
+
+  AsgProcessModifierFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Modifies ASG processes during CF stack creation'
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import boto3
+          def handler(event, context):
+            print 'event: ', event
+            print 'context: ', context
+            client = boto3.client('autoscaling')
+            props = event['ResourceProperties']
+            if props['Action'] == 'SuspendProcesses':
+              response = client.suspend_processes(AutoScalingGroupName=props['AutoScalingGroupName'], ScalingProcesses=props['ScalingProcesses'])
+            elif props['Action'] == 'ResumeProcesses':
+              response = client.resume_processes(AutoScalingGroupName=props['AutoScalingGroupName'], ScalingProcesses=props['ScalingProcesses'])
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, "CustomResourcePhysicalID")
+      Handler: index.handler
+      Role: !GetAtt AsgProcessModificationRole.Arn
+      Runtime: 'python2.7'
+
+  ModifyAsg:
+    Type: AWS::CloudFormation::CustomResource
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt AsgProcessModifierFunction.Arn
+      Action: SuspendProcesses
+      AutoScalingGroupName: !Ref rAutoScalingGroup
+      ScalingProcesses:
+        - HealthCheck
+
